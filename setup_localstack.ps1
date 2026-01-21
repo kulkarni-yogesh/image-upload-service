@@ -46,12 +46,33 @@ if ($LASTEXITCODE -eq 0) {
 
 # Create DynamoDB table
 Write-Host "Creating DynamoDB table..." -ForegroundColor Yellow
-aws dynamodb create-table --endpoint-url=$ENDPOINT_URL --region $REGION --table-name $TABLE_NAME --attribute-definitions AttributeName=image_id,AttributeType=S --key-schema AttributeName=image_id,KeyType=HASH --billing-mode PAY_PER_REQUEST 2>&1 | Out-Null
 
+# Check if table already exists
+$tableExists = aws dynamodb describe-table --endpoint-url=$ENDPOINT_URL --region $REGION --table-name $TABLE_NAME 2>&1 | Out-Null
 if ($LASTEXITCODE -eq 0) {
-    Write-Host "DynamoDB table created" -ForegroundColor Green
+    Write-Host "DynamoDB table already exists" -ForegroundColor Green
 } else {
-    Write-Host "DynamoDB table exists or created" -ForegroundColor Green
+    # Create the table
+    $createOutput = aws dynamodb create-table `
+        --endpoint-url=$ENDPOINT_URL `
+        --region $REGION `
+        --table-name $TABLE_NAME `
+        --attribute-definitions AttributeName=image_id,AttributeType=S `
+        --key-schema AttributeName=image_id,KeyType=HASH `
+        --billing-mode PAY_PER_REQUEST 2>&1
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "DynamoDB table created" -ForegroundColor Green
+    } else {
+        # Check if error is because table already exists
+        if ($createOutput -match "already exists" -or $createOutput -match "ResourceInUseException") {
+            Write-Host "DynamoDB table already exists" -ForegroundColor Green
+        } else {
+            Write-Host "Error creating DynamoDB table:" -ForegroundColor Red
+            Write-Host $createOutput -ForegroundColor Red
+            exit 1
+        }
+    }
 }
 
 Start-Sleep -Seconds 2

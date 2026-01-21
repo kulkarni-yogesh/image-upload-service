@@ -5,7 +5,7 @@ import json
 import base64
 import uuid
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Dict, Any, Optional
 import boto3
@@ -93,7 +93,7 @@ def upload_to_s3(image_bytes: bytes, image_id: str, content_type: str) -> str:
             ContentType=content_type,
             Metadata={
                 'image-id': image_id,
-                'uploaded-at': datetime.utcnow().isoformat()
+                'uploaded-at': datetime.now(timezone.utc).isoformat()
             }
         )
         
@@ -114,8 +114,8 @@ def save_metadata_to_dynamodb(image_id: str, metadata: Dict[str, Any], s3_key: s
             'user_id': user_id,
             's3_key': s3_key,
             's3_bucket': S3_BUCKET_NAME,
-            'created_at': datetime.utcnow().isoformat(),
-            'updated_at': datetime.utcnow().isoformat(),
+            'created_at': datetime.now(timezone.utc).isoformat(),
+            'updated_at': datetime.now(timezone.utc).isoformat(),
             **metadata
         }
         
